@@ -43,7 +43,7 @@ class FindMissingTranslations extends Command
             $directoryOption === null => resource_path(self::DEFAULT_LANG_DIRNAME),
             File::isDirectory($directoryOption) => $directoryOption,
             File::isDirectory(base_path($directoryOption)) => base_path($directoryOption),
-            default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist.")
+            default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist."),
         };
 
         $baseOption = $this->option('base');
