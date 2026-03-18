@@ -13,7 +13,7 @@ abstract class TestCase extends Orchestra
      * Get package providers.
      * In a normal app environment these would be added to the 'providers' array in the config/app.php file.
      * @param \Illuminate\Foundation\Application $app
-     * @return array
+     * @return array<int, class-string>
      */
     protected function getPackageProviders($app): array
     {

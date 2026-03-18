@@ -47,7 +47,9 @@ class FindMissingTranslations extends Command
             default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist.")
         };
 
-        $baseLocale = $this->option('base') ?: config('app.locale');
+        /** @var string|null $baseOption */
+        $baseOption = $this->option('base');
+        $baseLocale = $baseOption !== null ? $baseOption : config('app.locale');
         assert(is_string($baseLocale), 'Invalid base locale');
         $baseLocaleDirectoryPath = $pathToLocates . \DIRECTORY_SEPARATOR . $baseLocale;
 
@@ -56,6 +58,7 @@ class FindMissingTranslations extends Command
         $excludeLocales = $this->option('exclude');
         $excludeLocalesArray = is_string($excludeLocales) ? explode(',', $excludeLocales) : [];
 
+        /** @var list<string> $localeDirectories */
         $localeDirectories = File::directories($pathToLocates);
         $baseLocaleFiles = $this->getFilenames($baseLocaleDirectoryPath);
 
@@ -105,6 +108,7 @@ class FindMissingTranslations extends Command
     private function compareLanguages(string $baseLanguagePath, array $baseLanguageFiles, string $languagePath, array $languageFiles, string $languageName): void
     {
         foreach ($baseLanguageFiles as $languageFile) {
+            /** @var array<string, string|array<string, string>> $baseLanguageFile */
             $baseLanguageFile = File::getRequire("{$baseLanguagePath}/{$languageFile}");
 
             if (! in_array($languageFile, $languageFiles, true)) {
@@ -113,6 +117,7 @@ class FindMissingTranslations extends Command
 
                 continue;
             }
+            /** @var array<string, string|array<string, string>> $secondLanguageFile */
             $secondLanguageFile = File::getRequire("{$languagePath}/{$languageFile}");
 
             $missingKeys = $this->arrayDiffRecursive($baseLanguageFile, $secondLanguageFile);
@@ -152,7 +157,7 @@ class FindMissingTranslations extends Command
                 continue;
             }
 
-            if (is_array($value)) {
+            if (is_array($value) && is_array($secondArray[$key])) {
                 $outputDiff = array_merge($outputDiff, $this->arrayDiffRecursive($value, $secondArray[$key], $fullKey));
             }
         }
