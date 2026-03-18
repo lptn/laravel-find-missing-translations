@@ -11,15 +11,11 @@ $finder = PhpCsFixer\Finder::create()
 
 return (new PhpCsFixer\Config())
     ->setRules([
-        '@PER-CS' => true,
-        'array_syntax' => ['syntax' => 'short'],
+        '@PER-CS3x0' => true,
         'ordered_imports' => ['sort_algorithm' => 'alpha'],
         'no_unused_imports' => true,
         'not_operator_with_successor_space' => true,
-        'trailing_comma_in_multiline' => ['elements' => ['arrays']],
         'phpdoc_scalar' => true,
-        'unary_operator_spaces' => true,
-        'binary_operator_spaces' => true,
         'blank_line_before_statement' => [
             'statements' => ['break', 'continue', 'declare', 'return', 'throw', 'try'],
         ],
@@ -31,10 +27,8 @@ return (new PhpCsFixer\Config())
             ],
         ],
         'method_argument_space' => [
-            'on_multiline' => 'ensure_fully_multiline',
             'keep_multiple_spaces_after_comma' => true,
         ],
-        'single_trait_insert_per_statement' => true,
     ])
     ->setFinder($finder)
     ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect());

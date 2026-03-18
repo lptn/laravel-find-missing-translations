@@ -15,7 +15,7 @@ use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
  */
 class FindMissingTranslations extends Command
 {
-    private const DEFAULT_LANG_DIRNAME = 'lang';
+    private const string DEFAULT_LANG_DIRNAME = 'lang';
 
     /**
      * The name and signature of the console command.
@@ -37,7 +37,6 @@ class FindMissingTranslations extends Command
 
     public function handle(): int
     {
-        /** @var string|null $directoryOption */
         $directoryOption = $this->option('dir');
 
         $pathToLocates = match (true) {
@@ -47,7 +46,6 @@ class FindMissingTranslations extends Command
             default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist.")
         };
 
-        /** @var string|null $baseOption */
         $baseOption = $this->option('base');
         $baseLocale = $baseOption !== null ? $baseOption : config('app.locale');
         assert(is_string($baseLocale), 'Invalid base locale');
