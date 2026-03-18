@@ -88,7 +88,7 @@ class FindMissingTranslations extends Command
             }, $localeDirectories);
             $localesMissing = array_values(array_diff($onlyLocalesArray, $locales));
             if (count($localesMissing) > 0) {
-                $this->error('The following locales are missing:', 'q');
+                $this->error('The following locales are missing:', 'quiet');
                 $this->table(['locale'], array_map(static fn($locale) => [$locale], $localesMissing));
             }
         }
@@ -109,7 +109,7 @@ class FindMissingTranslations extends Command
 
             if (! in_array($languageFile, $languageFiles, true)) {
                 $this->comment("Comparing translations in {$languageFile}.", 'v');
-                $this->error("{$languageName}/{$languageFile} file is missing.", 'q');
+                $this->error("{$languageName}/{$languageFile} file is missing.", 'quiet');
 
                 continue;
             }
@@ -120,7 +120,7 @@ class FindMissingTranslations extends Command
             if (count($missingKeys) > 0) {
                 $this->exitCode = self::FAILURE;
 
-                $this->error("Found missing translations in /{$languageName}/{$languageFile}:", 'q');
+                $this->error("Found missing translations in /{$languageName}/{$languageFile}:", 'quiet');
 
                 $missingKeyInfo = [];
                 foreach ($missingKeys as $missingKey) {
