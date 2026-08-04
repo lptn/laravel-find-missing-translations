@@ -44,10 +44,10 @@
     },
     "scripts": {
         "cs": "vendor/bin/php-cs-fixer fix --allow-risky=yes",
+        "cs:check": "vendor/bin/php-cs-fixer fix --allow-risky=yes --dry-run --diff",
         "psalm": "vendor/bin/psalm",
         "psalm:ci": "vendor/bin/psalm --shepherd",
         "sa": "@psalm",
-        "sa:bl": "vendor/bin/psalm --set-baseline=psalm-baseline.xml --long-progress --threads=1",
         "test": "vendor/bin/phpunit"
     }
 }
