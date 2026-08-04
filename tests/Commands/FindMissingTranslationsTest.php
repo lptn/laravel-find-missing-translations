@@ -38,6 +38,19 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_compares_nested_group_directories(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/nested_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| be     | nested/b.php | Extra ', $output);
+    }
+
+    #[Test]
     public function it_reports_a_missing_base_locale_directory(): void
     {
         $this->withoutMockingConsoleOutput();
