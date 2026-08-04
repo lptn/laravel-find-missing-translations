@@ -107,16 +107,42 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
-    public function it_reports_a_missing_base_locale_directory(): void
+    public function it_reports_a_base_locale_that_has_no_translations_at_all(): void
     {
         $this->withoutMockingConsoleOutput();
 
         $dir = __DIR__ . '/sync_lang_files';
 
         $this->expectException(DirectoryNotFoundException::class);
-        $this->expectExceptionMessage("Base locale directory {$dir}/de does not exist.");
+        $this->expectExceptionMessage("Base locale de has neither a directory nor a JSON file in {$dir}.");
 
         $this->artisan("translations:missing --dir=$dir --base=de");
+    }
+
+    #[Test]
+    public function it_compares_json_files_when_the_base_locale_has_no_directory(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/json_only_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| be     | be.json | Good bye ', $output);
+    }
+
+    #[Test]
+    public function it_reports_a_locale_without_a_directory(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/json_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en --only=es");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('es directory is missing.', $output);
     }
 
     #[Test]
