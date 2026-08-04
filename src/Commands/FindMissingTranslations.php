@@ -175,17 +175,21 @@ class FindMissingTranslations extends Command
     }
 
     /**
-     * Get filenames of the directory
-     * @return list<string> Filenames in a given directory
+     * Get filenames of the directory, including the ones in nested group directories
+     *
+     * Laravel resolves "lang/en/nested/b.php" as the "nested/b" group, so a nested
+     * file is a translation file like any other and its path is part of its name.
+     *
+     * @return list<string> Filenames relative to a given directory
      */
     private function getFilenames(string $directory): array
     {
         $fileNames = [];
 
-        $filesInFolder = File::files($directory);
+        $filesInFolder = File::allFiles($directory);
 
         foreach ($filesInFolder as $fileInfo) {
-            $fileNames[] = $fileInfo->getFilename();
+            $fileNames[] = $fileInfo->getRelativePathname();
         }
 
         return $fileNames;
