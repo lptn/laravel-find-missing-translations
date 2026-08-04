@@ -64,6 +64,33 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_compares_json_translation_files(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/json_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| be     | be.json | Good bye ', $output);
+        $this->assertStringNotContainsString('| es     | es.json ', $output);
+    }
+
+    #[Test]
+    public function it_reports_a_locale_without_a_json_file(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/json_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en --only=fr");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('fr.json file is missing.', $output);
+    }
+
+    #[Test]
     public function it_reports_a_missing_base_locale_directory(): void
     {
         $this->withoutMockingConsoleOutput();
