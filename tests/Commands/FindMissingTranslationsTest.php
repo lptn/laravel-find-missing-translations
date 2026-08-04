@@ -7,6 +7,7 @@ namespace Diglabby\FindMissingTranslations\Tests\Commands;
 use Diglabby\FindMissingTranslations\Tests\TestCase;
 use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
 
 final class FindMissingTranslationsTest extends TestCase
 {
@@ -21,6 +22,32 @@ final class FindMissingTranslationsTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertSame('Successfully compared all languages.', trim($output));
+    }
+
+    #[Test]
+    public function it_fails_when_a_whole_language_file_is_missing(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/missing_file_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('be/b.php file is missing.', $output);
+    }
+
+    #[Test]
+    public function it_reports_a_missing_base_locale_directory(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/sync_lang_files';
+
+        $this->expectException(DirectoryNotFoundException::class);
+        $this->expectExceptionMessage("Base locale directory {$dir}/de does not exist.");
+
+        $this->artisan("translations:missing --dir=$dir --base=de");
     }
 
     #[Test]
