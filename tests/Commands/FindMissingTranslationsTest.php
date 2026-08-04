@@ -24,6 +24,21 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_ignores_the_vendor_directory_and_keeps_full_locale_names(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/vendor_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| pt_BR  | a.php | OK ', $output);
+        $this->assertStringNotContainsString('vendor', $output);
+        $this->assertStringNotContainsString('or/a.php', $output);
+    }
+
+    #[Test]
     public function it_reports_about_missing_translation_keys(): void
     {
         $this->withoutMockingConsoleOutput();

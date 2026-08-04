@@ -18,6 +18,11 @@ class FindMissingTranslations extends Command
     private const string DEFAULT_LANG_DIRNAME = 'lang';
 
     /**
+     * Package translation overrides live in "lang/vendor/{package}/{locale}", so this directory holds no locales itself.
+     */
+    private const string VENDOR_DIRNAME = 'vendor';
+
+    /**
      * The name and signature of the console command.
      * @var string
      */
@@ -56,14 +61,17 @@ class FindMissingTranslations extends Command
         $excludeLocales = $this->option('exclude');
         $excludeLocalesArray = is_string($excludeLocales) ? explode(',', $excludeLocales) : [];
 
-        /** @var list<string> $localeDirectories */
-        $localeDirectories = File::directories($pathToLocates);
+        /** @var list<string> $allDirectories */
+        $allDirectories = File::directories($pathToLocates);
+        $localeDirectories = array_values(array_filter(
+            $allDirectories,
+            static fn(string $directory): bool => basename($directory) !== self::VENDOR_DIRNAME,
+        ));
         $baseLocaleFiles = $this->getFilenames($baseLocaleDirectoryPath);
 
         foreach ($localeDirectories as $currentLocaleDirectoryPath) {
             $languageFiles = $this->getFilenames($currentLocaleDirectoryPath);
-            preg_match('/(\w{2})$/', $currentLocaleDirectoryPath, $matchedParts);
-            $currentLocale = $matchedParts[0];
+            $currentLocale = basename($currentLocaleDirectoryPath);
 
             $isDirectoryForBaseLocale = $baseLocale === $currentLocale;
             if ($isDirectoryForBaseLocale) {
@@ -82,11 +90,7 @@ class FindMissingTranslations extends Command
         }
 
         if (count($onlyLocalesArray) > 0) {
-            $locales = array_map(static function ($currentLocaleDirectoryPath) {
-                preg_match('/(\w{2})$/', $currentLocaleDirectoryPath, $matchedParts);
-
-                return $matchedParts[0];
-            }, $localeDirectories);
+            $locales = array_map(static fn(string $currentLocaleDirectoryPath): string => basename($currentLocaleDirectoryPath), $localeDirectories);
             $localesMissing = array_values(array_diff($onlyLocalesArray, $locales));
             if (count($localesMissing) > 0) {
                 $this->error('The following locales are missing:', 'quiet');
