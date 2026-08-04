@@ -90,8 +90,11 @@ class FindMissingTranslations extends Command
             $this->compareLanguages($baseLocaleDirectoryPath, $baseLocaleFiles, $currentLocaleDirectoryPath, $languageFiles, $currentLocale);
         }
 
+        $locales = array_map(static fn(string $currentLocaleDirectoryPath): string => basename($currentLocaleDirectoryPath), $localeDirectories);
+
+        $this->compareJsonTranslations($pathToLocates, $baseLocale, $locales, $onlyLocalesArray, $excludeLocalesArray);
+
         if (count($onlyLocalesArray) > 0) {
-            $locales = array_map(static fn(string $currentLocaleDirectoryPath): string => basename($currentLocaleDirectoryPath), $localeDirectories);
             $localesMissing = array_values(array_diff($onlyLocalesArray, $locales));
             if (count($localesMissing) > 0) {
                 $this->error('The following locales are missing:', 'quiet');
@@ -140,6 +143,107 @@ class FindMissingTranslations extends Command
                 $this->table(['locale', 'file', 'key'], $missingKeyInfo);
             }
         }
+    }
+
+    /**
+     * Compare the JSON translation files that live next to the locale directories
+     *
+     * Laravel reads "lang/{locale}.json" for string keyed translations. Nothing is
+     * compared when the base locale has no JSON file: the project does not use them.
+     *
+     * @param list<string> $localeDirectoryNames Locales that have a directory of PHP group files
+     * @param list<string> $onlyLocales
+     * @param list<string> $excludeLocales
+     */
+    private function compareJsonTranslations(string $langPath, string $baseLocale, array $localeDirectoryNames, array $onlyLocales, array $excludeLocales): void
+    {
+        $baseJsonPath = $langPath . \DIRECTORY_SEPARATOR . $baseLocale . '.json';
+        if (! File::isFile($baseJsonPath)) {
+            return;
+        }
+
+        $baseTranslations = $this->readJsonFile($baseJsonPath);
+
+        foreach ($this->getJsonLocales($langPath, $localeDirectoryNames) as $currentLocale) {
+            if ($currentLocale === $baseLocale) {
+                continue;
+            }
+            if (count($onlyLocales) > 0 && ! in_array($currentLocale, $onlyLocales, true)) {
+                continue;
+            }
+            if (in_array($currentLocale, $excludeLocales, true)) {
+                continue;
+            }
+
+            $this->info("Comparing {$baseLocale} to {$currentLocale}.", 'v');
+
+            $jsonFileName = $currentLocale . '.json';
+            $jsonPath = $langPath . \DIRECTORY_SEPARATOR . $jsonFileName;
+
+            if (! File::isFile($jsonPath)) {
+                $this->exitCode = self::FAILURE;
+
+                $this->error("{$jsonFileName} file is missing.", 'quiet');
+
+                continue;
+            }
+
+            $missingKeys = $this->arrayDiffRecursive($baseTranslations, $this->readJsonFile($jsonPath));
+
+            if (count($missingKeys) > 0) {
+                $this->exitCode = self::FAILURE;
+
+                $this->error("Found missing translations in /{$jsonFileName}:", 'quiet');
+
+                $missingKeyInfo = [];
+                foreach ($missingKeys as $missingKey) {
+                    $missingKeyInfo[] = [$currentLocale, $jsonFileName, $missingKey];
+                }
+
+                $this->table(['locale', 'file', 'key'], $missingKeyInfo);
+            }
+        }
+    }
+
+    /**
+     * Every locale of the project: the ones with a JSON file and the ones with a directory
+     *
+     * A locale that has a directory but no JSON file has translated none of the string
+     * keys, so it belongs in the comparison and is reported as a missing file.
+     *
+     * @param list<string> $localeDirectoryNames
+     * @return list<string>
+     */
+    private function getJsonLocales(string $langPath, array $localeDirectoryNames): array
+    {
+        $jsonLocales = [];
+
+        foreach (File::files($langPath) as $fileInfo) {
+            if ($fileInfo->getExtension() === 'json') {
+                $jsonLocales[] = $fileInfo->getBasename('.json');
+            }
+        }
+
+        return array_values(array_unique([...$jsonLocales, ...$localeDirectoryNames]));
+    }
+
+    /**
+     * @return array<string, string|array<string, string>>
+     */
+    private function readJsonFile(string $path): array
+    {
+        try {
+            $decoded = json_decode(File::get($path), true, 512, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new \JsonException("{$path} is not valid JSON: {$exception->getMessage()}", $exception->getCode(), $exception);
+        }
+
+        if (! is_array($decoded)) {
+            throw new \JsonException("{$path} does not contain a JSON object of translations.");
+        }
+
+        /** @var array<string, string|array<string, string>> $decoded */
+        return $decoded;
     }
 
     /**

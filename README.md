@@ -52,6 +52,13 @@ php artisan translations:missing --dir=/my-custom-lang-dirname
 
 The `lang/vendor` directory, where package translation overrides live, is skipped.
 
+### What is compared
+
+Both translation formats:
+
+* PHP group files, `lang/{locale}/{group}.php`, including files in nested group directories such as `lang/{locale}/admin/orders.php`.
+* JSON string keyed files, `lang/{locale}.json`. They are compared only when the base locale has one, so projects that use PHP groups only see no difference.
+
 ## Contributing
 
 ### Testing
