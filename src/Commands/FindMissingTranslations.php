@@ -51,9 +51,7 @@ class FindMissingTranslations extends Command
             default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist."),
         };
 
-        $baseOption = $this->option('base');
-        $baseLocale = $baseOption !== null ? $baseOption : config('app.locale');
-        assert(is_string($baseLocale), 'Invalid base locale');
+        $baseLocale = $this->option('base') ?? config('app.locale');
         $baseLocaleDirectoryPath = $pathToLocates . \DIRECTORY_SEPARATOR . $baseLocale;
         if (! File::isDirectory($baseLocaleDirectoryPath)) {
             throw new DirectoryNotFoundException("Base locale directory {$baseLocaleDirectoryPath} does not exist.");
