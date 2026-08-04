@@ -59,6 +59,8 @@ Both translation formats:
 * PHP group files, `lang/{locale}/{group}.php`, including files in nested group directories such as `lang/{locale}/admin/orders.php`.
 * JSON string keyed files, `lang/{locale}.json`. They are compared only when the base locale has one, so projects that use PHP groups only see no difference.
 
+A locale counts as declared when it has either a directory or a JSON file, and both formats are then expected of it. A locale with `be.json` but no `be/` directory has translated none of the group keys, so the missing directory is reported, and the same holds the other way round. The base locale needs at least one of the two.
+
 ## Contributing
 
 ### Testing

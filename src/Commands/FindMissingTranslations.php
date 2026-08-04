@@ -53,8 +53,10 @@ class FindMissingTranslations extends Command
 
         $baseLocale = $this->option('base') ?? config('app.locale');
         $baseLocaleDirectoryPath = $pathToLocates . \DIRECTORY_SEPARATOR . $baseLocale;
-        if (! File::isDirectory($baseLocaleDirectoryPath)) {
-            throw new DirectoryNotFoundException("Base locale directory {$baseLocaleDirectoryPath} does not exist.");
+        $baseJsonPath = $pathToLocates . \DIRECTORY_SEPARATOR . $baseLocale . '.json';
+        $hasBaseDirectory = File::isDirectory($baseLocaleDirectoryPath);
+        if (! $hasBaseDirectory && ! File::isFile($baseJsonPath)) {
+            throw new DirectoryNotFoundException("Base locale {$baseLocale} has neither a directory nor a JSON file in {$pathToLocates}.");
         }
 
         $onlyLocales = $this->option('only');
@@ -62,42 +64,28 @@ class FindMissingTranslations extends Command
         $excludeLocales = $this->option('exclude');
         $excludeLocalesArray = is_string($excludeLocales) ? explode(',', $excludeLocales) : [];
 
-        /** @var list<string> $allDirectories */
-        $allDirectories = File::directories($pathToLocates);
-        $localeDirectories = array_values(array_filter(
-            $allDirectories,
-            static fn(string $directory): bool => basename($directory) !== self::VENDOR_DIRNAME,
+        $locales = $this->getLocales($pathToLocates);
+        $comparedLocales = array_values(array_filter(
+            $locales,
+            fn(string $locale): bool => $locale !== $baseLocale
+                && (count($onlyLocalesArray) === 0 || in_array($locale, $onlyLocalesArray, true))
+                && ! in_array($locale, $excludeLocalesArray, true),
         ));
-        $baseTranslations = $this->loadTranslations($baseLocaleDirectoryPath);
 
-        foreach ($localeDirectories as $currentLocaleDirectoryPath) {
-            $languageFiles = $this->getFilenames($currentLocaleDirectoryPath);
-            $currentLocale = basename($currentLocaleDirectoryPath);
+        if ($hasBaseDirectory) {
+            $baseTranslations = $this->loadTranslations($baseLocaleDirectoryPath);
 
-            $isDirectoryForBaseLocale = $baseLocale === $currentLocale;
-            if ($isDirectoryForBaseLocale) {
-                continue;
+            foreach ($comparedLocales as $currentLocale) {
+                $this->info("Comparing {$baseLocale} to {$currentLocale}.", 'v');
+
+                $this->compareLanguages($pathToLocates, $baseTranslations, $currentLocale);
             }
-            if (count($onlyLocalesArray) > 0 && ! in_array($currentLocale, $onlyLocalesArray, true)) {
-                continue;
-            }
-            if (in_array($currentLocale, $excludeLocalesArray, true)) {
-                continue;
-            }
-
-            $this->info("Comparing {$baseLocale} to {$currentLocale}.", 'v');
-
-            $this->compareLanguages($baseTranslations, $currentLocaleDirectoryPath, $languageFiles, $currentLocale);
         }
 
-        $locales = array_map(static fn(string $currentLocaleDirectoryPath): string => basename($currentLocaleDirectoryPath), $localeDirectories);
+        $this->compareJsonTranslations($pathToLocates, $baseLocale, $comparedLocales);
 
-        $this->compareJsonTranslations($pathToLocates, $baseLocale, $locales, $onlyLocalesArray, $excludeLocalesArray);
-
-        $existingLocales = $this->getLocales($pathToLocates, $locales);
-
-        $this->reportUnknownLocales('only', $onlyLocalesArray, $existingLocales);
-        $this->reportUnknownLocales('exclude', $excludeLocalesArray, $existingLocales);
+        $this->reportUnknownLocales('only', $onlyLocalesArray, $locales);
+        $this->reportUnknownLocales('exclude', $excludeLocalesArray, $locales);
 
         $this->info('Successfully compared all languages.');
 
@@ -126,11 +114,27 @@ class FindMissingTranslations extends Command
     }
 
     /**
+     * Compare the PHP group files of one locale to the base locale
+     *
+     * A locale that exists as a JSON file only has no group file at all, so every group
+     * key of the base locale falls back. That is reported as a missing directory.
+     *
      * @param array<string, array<string, string|array<string, string>>> $baseTranslations Filename to its translations
-     * @param list<string> $languageFiles Filenames
      */
-    private function compareLanguages(array $baseTranslations, string $languagePath, array $languageFiles, string $languageName): void
+    private function compareLanguages(string $langPath, array $baseTranslations, string $languageName): void
     {
+        $languagePath = $langPath . \DIRECTORY_SEPARATOR . $languageName;
+
+        if (! File::isDirectory($languagePath)) {
+            $this->exitCode = self::FAILURE;
+
+            $this->error("{$languageName} directory is missing.", 'quiet');
+
+            return;
+        }
+
+        $languageFiles = $this->getFilenames($languagePath);
+
         foreach ($baseTranslations as $languageFile => $baseLanguageFile) {
             if (! in_array($languageFile, $languageFiles, true)) {
                 $this->exitCode = self::FAILURE;
@@ -166,33 +170,23 @@ class FindMissingTranslations extends Command
      * Laravel reads "lang/{locale}.json" for string keyed translations. Nothing is
      * compared when the base locale has no JSON file: the project does not use them.
      *
-     * @param list<string> $localeDirectoryNames Locales that have a directory of PHP group files
-     * @param list<string> $onlyLocales
-     * @param list<string> $excludeLocales
+     * @param list<string> $comparedLocales
      */
-    private function compareJsonTranslations(string $langPath, string $baseLocale, array $localeDirectoryNames, array $onlyLocales, array $excludeLocales): void
+    private function compareJsonTranslations(string $langPath, string $baseLocale, array $comparedLocales): void
     {
-        $baseJsonPath = $langPath . \DIRECTORY_SEPARATOR . $baseLocale . '.json';
+        $baseJsonFileName = $baseLocale . '.json';
+        $baseJsonPath = $langPath . \DIRECTORY_SEPARATOR . $baseJsonFileName;
         if (! File::isFile($baseJsonPath)) {
             return;
         }
 
         $baseTranslations = $this->readJsonFile($baseJsonPath);
 
-        foreach ($this->getLocales($langPath, $localeDirectoryNames) as $currentLocale) {
-            if ($currentLocale === $baseLocale) {
-                continue;
-            }
-            if (count($onlyLocales) > 0 && ! in_array($currentLocale, $onlyLocales, true)) {
-                continue;
-            }
-            if (in_array($currentLocale, $excludeLocales, true)) {
-                continue;
-            }
-
-            $this->info("Comparing {$baseLocale} to {$currentLocale}.", 'v');
-
+        foreach ($comparedLocales as $currentLocale) {
             $jsonFileName = $currentLocale . '.json';
+
+            $this->info("Comparing {$baseJsonFileName} to {$jsonFileName}.", 'v');
+
             $jsonPath = $langPath . \DIRECTORY_SEPARATOR . $jsonFileName;
 
             if (! File::isFile($jsonPath)) {
@@ -223,24 +217,33 @@ class FindMissingTranslations extends Command
     /**
      * Every locale of the project: the ones with a JSON file and the ones with a directory
      *
-     * A locale that has a directory but no JSON file has translated none of the string
-     * keys, so it belongs in the JSON comparison and is reported as a missing file.
-     * The same set answers whether a locale named in --only or --exclude exists.
+     * A locale declared in one format has not translated the other format at all, so both
+     * comparisons walk this set and report the format that is absent. The same set answers
+     * whether a locale named in --only or --exclude exists.
      *
-     * @param list<string> $localeDirectoryNames
      * @return list<string>
      */
-    private function getLocales(string $langPath, array $localeDirectoryNames): array
+    private function getLocales(string $langPath): array
     {
-        $jsonLocales = [];
+        $locales = [];
 
         foreach (File::files($langPath) as $fileInfo) {
             if ($fileInfo->getExtension() === 'json') {
-                $jsonLocales[] = $fileInfo->getBasename('.json');
+                $locales[] = $fileInfo->getBasename('.json');
             }
         }
 
-        return array_values(array_unique([...$jsonLocales, ...$localeDirectoryNames]));
+        /** @var list<string> $directories */
+        $directories = File::directories($langPath);
+
+        foreach ($directories as $directory) {
+            $localeDirectoryName = basename($directory);
+            if ($localeDirectoryName !== self::VENDOR_DIRNAME) {
+                $locales[] = $localeDirectoryName;
+            }
+        }
+
+        return array_values(array_unique($locales));
     }
 
     /**
