@@ -68,7 +68,7 @@ class FindMissingTranslations extends Command
             $allDirectories,
             static fn(string $directory): bool => basename($directory) !== self::VENDOR_DIRNAME,
         ));
-        $baseLocaleFiles = $this->getFilenames($baseLocaleDirectoryPath);
+        $baseTranslations = $this->loadTranslations($baseLocaleDirectoryPath);
 
         foreach ($localeDirectories as $currentLocaleDirectoryPath) {
             $languageFiles = $this->getFilenames($currentLocaleDirectoryPath);
@@ -87,7 +87,7 @@ class FindMissingTranslations extends Command
 
             $this->info("Comparing {$baseLocale} to {$currentLocale}.", 'v');
 
-            $this->compareLanguages($baseLocaleDirectoryPath, $baseLocaleFiles, $currentLocaleDirectoryPath, $languageFiles, $currentLocale);
+            $this->compareLanguages($baseTranslations, $currentLocaleDirectoryPath, $languageFiles, $currentLocale);
         }
 
         if (count($onlyLocalesArray) > 0) {
@@ -105,15 +105,12 @@ class FindMissingTranslations extends Command
     }
 
     /**
-     * @param list<string> $baseLanguageFiles Filenames
+     * @param array<string, array<string, string|array<string, string>>> $baseTranslations Filename to its translations
      * @param list<string> $languageFiles Filenames
      */
-    private function compareLanguages(string $baseLanguagePath, array $baseLanguageFiles, string $languagePath, array $languageFiles, string $languageName): void
+    private function compareLanguages(array $baseTranslations, string $languagePath, array $languageFiles, string $languageName): void
     {
-        foreach ($baseLanguageFiles as $languageFile) {
-            /** @var array<string, string|array<string, string>> $baseLanguageFile */
-            $baseLanguageFile = File::getRequire("{$baseLanguagePath}/{$languageFile}");
-
+        foreach ($baseTranslations as $languageFile => $baseLanguageFile) {
             if (! in_array($languageFile, $languageFiles, true)) {
                 $this->exitCode = self::FAILURE;
 
@@ -170,6 +167,27 @@ class FindMissingTranslations extends Command
         }
 
         return $outputDiff;
+    }
+
+    /**
+     * Read every translation file of a locale directory
+     *
+     * File::getRequire() runs require(), which re-executes the file on every call, so the
+     * base locale is read once here instead of once per compared locale.
+     *
+     * @return array<string, array<string, string|array<string, string>>> Filename to its translations
+     */
+    private function loadTranslations(string $directory): array
+    {
+        $translations = [];
+
+        foreach ($this->getFilenames($directory) as $fileName) {
+            /** @var array<string, string|array<string, string>> $fileTranslations */
+            $fileTranslations = File::getRequire($directory . \DIRECTORY_SEPARATOR . $fileName);
+            $translations[$fileName] = $fileTranslations;
+        }
+
+        return $translations;
     }
 
     /**
