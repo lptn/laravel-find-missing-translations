@@ -145,6 +145,9 @@ class FindMissingTranslations extends Command
     /**
      * Compare array keys recursively
      *
+     * A key that holds a group in the base locale but a plain string in the compared
+     * locale is reported: none of the keys of that group can be resolved there.
+     *
      * @param array<array-key, string|array<string, string>> $firstArray
      * @param array<string, string|array<string, string>> $secondArray
      * @param string|null $prefix
@@ -164,9 +167,17 @@ class FindMissingTranslations extends Command
                 continue;
             }
 
-            if (is_array($value) && is_array($secondArray[$key])) {
-                $outputDiff = array_merge($outputDiff, $this->arrayDiffRecursive($value, $secondArray[$key], $fullKey));
+            if (! is_array($value)) {
+                continue;
             }
+
+            if (! is_array($secondArray[$key])) {
+                $outputDiff[] = $fullKey;
+
+                continue;
+            }
+
+            $outputDiff = array_merge($outputDiff, $this->arrayDiffRecursive($value, $secondArray[$key], $fullKey));
         }
 
         return $outputDiff;
