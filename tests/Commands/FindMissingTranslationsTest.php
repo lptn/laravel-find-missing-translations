@@ -39,6 +39,21 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_uses_the_application_lang_path_when_no_directory_is_given(): void
+    {
+        $this->withoutMockingConsoleOutput();
+        $application = $this->app;
+        assert($application !== null);
+        $application->useLangPath(__DIR__ . '/unsync_lang_files');
+
+        $exitCode = $this->artisan('translations:missing --base=en');
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| be     | a.php | OK ', $output);
+    }
+
+    #[Test]
     public function it_reports_about_missing_translation_keys(): void
     {
         $this->withoutMockingConsoleOutput();

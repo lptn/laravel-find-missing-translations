@@ -15,8 +15,6 @@ use Symfony\Component\Finder\Exception\DirectoryNotFoundException;
  */
 class FindMissingTranslations extends Command
 {
-    private const string DEFAULT_LANG_DIRNAME = 'lang';
-
     /**
      * Package translation overrides live in "lang/vendor/{package}/{locale}", so this directory holds no locales itself.
      */
@@ -27,7 +25,7 @@ class FindMissingTranslations extends Command
      * @var string
      */
     protected $signature = 'translations:missing
-        {--dir= : Relative path of lang directory, e.g. "/resources/lang", a directory that contains all supported locales}
+        {--dir= : Relative path of lang directory, e.g. "/lang", a directory that contains all supported locales. Defaults to the application lang path}
         {--base= : Base locale, e.g. "en". All other locales are compared to this locale}
         {--only= : Only compare specified locales, e.g. "be,de,es,fr". All other locales are ignored}
         {--exclude= : Exclude specified locales, e.g. "be,de,es,fr". All other locales are compared}';
@@ -43,9 +41,11 @@ class FindMissingTranslations extends Command
     public function handle(): int
     {
         $directoryOption = $this->option('dir');
+        $defaultLangPath = $this->laravel->langPath();
 
         $pathToLocates = match (true) {
-            $directoryOption === null => resource_path(self::DEFAULT_LANG_DIRNAME),
+            $directoryOption === null && File::isDirectory($defaultLangPath) => $defaultLangPath,
+            $directoryOption === null => throw new DirectoryNotFoundException("Default lang directory {$defaultLangPath} does not exist."),
             File::isDirectory($directoryOption) => $directoryOption,
             File::isDirectory(base_path($directoryOption)) => base_path($directoryOption),
             default => throw new DirectoryNotFoundException("Specified resource directory {$directoryOption} does not exist."),
