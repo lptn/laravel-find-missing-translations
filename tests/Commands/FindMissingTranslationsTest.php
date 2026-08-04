@@ -51,6 +51,19 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_reports_a_group_replaced_by_a_plain_string(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/mismatch_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('| be     | a.php | group ', $output);
+    }
+
+    #[Test]
     public function it_reports_a_missing_base_locale_directory(): void
     {
         $this->withoutMockingConsoleOutput();
