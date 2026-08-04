@@ -94,17 +94,35 @@ class FindMissingTranslations extends Command
 
         $this->compareJsonTranslations($pathToLocates, $baseLocale, $locales, $onlyLocalesArray, $excludeLocalesArray);
 
-        if (count($onlyLocalesArray) > 0) {
-            $localesMissing = array_values(array_diff($onlyLocalesArray, $locales));
-            if (count($localesMissing) > 0) {
-                $this->error('The following locales are missing:', 'quiet');
-                $this->table(['locale'], array_map(static fn($locale) => [$locale], $localesMissing));
-            }
-        }
+        $existingLocales = $this->getLocales($pathToLocates, $locales);
+
+        $this->reportUnknownLocales('only', $onlyLocalesArray, $existingLocales);
+        $this->reportUnknownLocales('exclude', $excludeLocalesArray, $existingLocales);
 
         $this->info('Successfully compared all languages.');
 
         return $this->exitCode;
+    }
+
+    /**
+     * Report locales that were named in --only or --exclude but do not exist
+     *
+     * A typo in either option silently changes what is compared, so it fails the run.
+     *
+     * @param list<string> $requestedLocales
+     * @param list<string> $existingLocales
+     */
+    private function reportUnknownLocales(string $option, array $requestedLocales, array $existingLocales): void
+    {
+        $unknownLocales = array_values(array_diff($requestedLocales, $existingLocales));
+        if (count($unknownLocales) === 0) {
+            return;
+        }
+
+        $this->exitCode = self::FAILURE;
+
+        $this->error("The following locales of --{$option} are missing:", 'quiet');
+        $this->table(['locale'], array_map(static fn(string $locale): array => [$locale], $unknownLocales));
     }
 
     /**
@@ -161,7 +179,7 @@ class FindMissingTranslations extends Command
 
         $baseTranslations = $this->readJsonFile($baseJsonPath);
 
-        foreach ($this->getJsonLocales($langPath, $localeDirectoryNames) as $currentLocale) {
+        foreach ($this->getLocales($langPath, $localeDirectoryNames) as $currentLocale) {
             if ($currentLocale === $baseLocale) {
                 continue;
             }
@@ -206,12 +224,13 @@ class FindMissingTranslations extends Command
      * Every locale of the project: the ones with a JSON file and the ones with a directory
      *
      * A locale that has a directory but no JSON file has translated none of the string
-     * keys, so it belongs in the comparison and is reported as a missing file.
+     * keys, so it belongs in the JSON comparison and is reported as a missing file.
+     * The same set answers whether a locale named in --only or --exclude exists.
      *
      * @param list<string> $localeDirectoryNames
      * @return list<string>
      */
-    private function getJsonLocales(string $langPath, array $localeDirectoryNames): array
+    private function getLocales(string $langPath, array $localeDirectoryNames): array
     {
         $jsonLocales = [];
 

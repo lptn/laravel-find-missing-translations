@@ -91,6 +91,22 @@ final class FindMissingTranslationsTest extends TestCase
     }
 
     #[Test]
+    public function it_fails_when_only_or_exclude_names_a_locale_that_does_not_exist(): void
+    {
+        $this->withoutMockingConsoleOutput();
+
+        $dir = __DIR__ . '/sync_lang_files';
+        $exitCode = $this->artisan("translations:missing --dir=$dir --base=en --only=be,dee --exclude=frr");
+        $output = Artisan::output();
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('The following locales of --only are missing:', $output);
+        $this->assertStringContainsString('| dee ', $output);
+        $this->assertStringContainsString('The following locales of --exclude are missing:', $output);
+        $this->assertStringContainsString('| frr ', $output);
+    }
+
+    #[Test]
     public function it_reports_a_missing_base_locale_directory(): void
     {
         $this->withoutMockingConsoleOutput();
