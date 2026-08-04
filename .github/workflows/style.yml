@@ -2,14 +2,23 @@ name: Check & fix styling
 
 on:
     push:
+        branches: [master]
         paths:
             - '**.php'
-            - '.composer.lock'
-            - '.php_cs'
-            - '.github/workflows/php-cs-fixer.yml'
+            - 'composer.lock'
+            - '.php-cs-fixer.php'
+            - '.github/workflows/style.yml'
+    pull_request:
+        paths:
+            - '**.php'
+            - 'composer.lock'
+            - '.php-cs-fixer.php'
+            - '.github/workflows/style.yml'
 
 jobs:
-    style:
+    fix:
+        name: fix styling
+        if: github.event_name == 'push'
         runs-on: ubuntu-latest
 
         steps:
@@ -25,3 +34,17 @@ jobs:
                 uses: stefanzweifel/git-auto-commit-action@v5
                 with:
                     commit_message: Fix styling
+
+    check:
+        name: check styling
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+
+            -   name: Check style
+                uses: docker://oskarstark/php-cs-fixer-ga
+                with:
+                    args: --config=.php-cs-fixer.php --allow-risky=yes --dry-run --diff

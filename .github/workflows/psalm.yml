@@ -2,9 +2,18 @@ name: Psalm
 
 on:
   push:
+    branches: [master]
     paths:
       - '**.php'
       - 'psalm*'
+  pull_request:
+    paths:
+      - '**.php'
+      - 'psalm*'
+
+concurrency:
+  group: psalm-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   psalm:
@@ -23,10 +32,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-${{ hashFiles('composer.lock') }}
+          key: composer-${{ hashFiles('composer.json') }}
 
       - name: Run composer install
         run: composer install -n --prefer-dist
 
       - name: Run Psalm
+        if: github.event_name == 'pull_request'
+        run: composer psalm
+
+      - name: Run Psalm and report type coverage
+        if: github.event_name != 'pull_request'
         run: composer psalm:ci
