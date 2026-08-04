@@ -1,6 +1,6 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/diglabby/laravel-find-missing-translations.svg?style=flat-square)](https://packagist.org/packages/diglabby/laravel-find-missing-translations)
 [![Total Downloads](https://img.shields.io/packagist/dt/diglabby/laravel-find-missing-translations.svg?style=flat-square)](https://packagist.org/packages/diglabby/laravel-find-missing-translations)
-[![Test](https://github.com/diglabby/laravel-find-missing-translations/workflows/Test/badge.svg)](https://github.com/diglabby/laravel-find-missing-translations/actions/workflows/run-tests.yml)
+[![Test](https://github.com/diglabby/laravel-find-missing-translations/actions/workflows/test.yml/badge.svg)](https://github.com/diglabby/laravel-find-missing-translations/actions/workflows/test.yml)
 [![Type coverage](https://shepherd.dev/github/diglabby/laravel-find-missing-translations/coverage.svg)](https://shepherd.dev/github/diglabby/laravel-find-missing-translations)
 [![Psalm level](https://shepherd.dev/github/diglabby/laravel-find-missing-translations/level.svg)](https://shepherd.dev/github/diglabby/laravel-find-missing-translations)
 
@@ -20,13 +20,15 @@ Output example:
 composer require diglabby/laravel-find-missing-translations --dev
 ```
 
-The package works with Laravel 5 and higher, PHP 7.1 and higher.
+The package requires PHP 8.3 or higher and Laravel 12 or 13. For Laravel 10 or 11 use `^1.6`.
 
 ## Usage
-Use default locate as base and default Laravel’s path to lang files:
+Use the application locale as base and the application lang path (`lang/` since Laravel 9, `resources/lang/` before that):
 ```sh
 php artisan translations:missing
 ```
+
+The command exits with code `1` when a locale is missing a key or a whole translation file, so it can gate a CI build.
 
 You can specify a base locale:
 ```sh
@@ -43,10 +45,12 @@ You can specify a list of locales to exclude:
 php artisan translations:missing --base=es --exclude=fr,de
 ```
 
-You can specify a relative or absolute path to `lang` directory location:
+You can specify a relative or absolute path to the `lang` directory location:
 ```sh
-php artisan translations:missing --dir=/resources/my-custom-lang-dirname
+php artisan translations:missing --dir=/my-custom-lang-dirname
 ```
+
+The `lang/vendor` directory, where package translation overrides live, is skipped.
 
 ## Contributing
 
