@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.md diff=markdown
+*.php diff=php
+
+/.editorconfig export-ignore
+/.gitattributes export-ignore
+/.github export-ignore
+/.gitignore export-ignore
+/.php-cs-fixer.php export-ignore
+/phpunit.xml.dist export-ignore
+/psalm.xml export-ignore
+/tests export-ignore

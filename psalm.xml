@@ -4,13 +4,11 @@
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
     errorLevel="1"
-    findUnusedBaselineEntry="true"
     findUnusedCode="false"
     findUnusedVariablesAndParams="true"
     resolveFromConfigFile="true"
     useDocblockPropertyTypes="true"
     ensureOverrideAttribute="false"
-    errorBaseline="psalm-baseline.xml"
 >
     <projectFiles>
         <directory name="src"/>
@@ -20,6 +18,7 @@
         </ignoreFiles>
     </projectFiles>
 
-    <issueHandlers>
-    </issueHandlers>
-<plugins><pluginClass class="Psalm\LaravelPlugin\Plugin"/></plugins></psalm>
+    <plugins>
+        <pluginClass class="Psalm\LaravelPlugin\Plugin"/>
+    </plugins>
+</psalm>
