@@ -55,6 +55,9 @@ class FindMissingTranslations extends Command
         $baseLocale = $baseOption !== null ? $baseOption : config('app.locale');
         assert(is_string($baseLocale), 'Invalid base locale');
         $baseLocaleDirectoryPath = $pathToLocates . \DIRECTORY_SEPARATOR . $baseLocale;
+        if (! File::isDirectory($baseLocaleDirectoryPath)) {
+            throw new DirectoryNotFoundException("Base locale directory {$baseLocaleDirectoryPath} does not exist.");
+        }
 
         $onlyLocales = $this->option('only');
         $onlyLocalesArray = is_string($onlyLocales) ? explode(',', $onlyLocales) : [];
@@ -114,6 +117,8 @@ class FindMissingTranslations extends Command
             $baseLanguageFile = File::getRequire("{$baseLanguagePath}/{$languageFile}");
 
             if (! in_array($languageFile, $languageFiles, true)) {
+                $this->exitCode = self::FAILURE;
+
                 $this->comment("Comparing translations in {$languageFile}.", 'v');
                 $this->error("{$languageName}/{$languageFile} file is missing.", 'quiet');
 
